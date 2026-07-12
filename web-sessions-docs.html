@@ -1,0 +1,1171 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Web Sessions — The Complete Guide</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+<style>
+:root{
+  --bg:#0a0e14;
+  --bg-panel:#10141d;
+  --bg-elevated:#151a25;
+  --glass: rgba(255,255,255,0.04);
+  --border: rgba(255,255,255,0.08);
+  --border-hover: rgba(255,255,255,0.16);
+  --text-1:#e8ebf1;
+  --text-2:#9aa4b8;
+  --text-3:#5f6b82;
+  --accent:#22d3b8;
+  --accent-dim: rgba(34,211,184,0.12);
+  --accent-2:#5b8cff;
+  --danger:#ff5c72;
+  --danger-dim: rgba(255,92,114,0.12);
+  --warn:#ffb648;
+  --warn-dim: rgba(255,182,72,0.12);
+  --sidebar-w: 280px;
+  --toc-w: 220px;
+  --font-display:'Space Grotesk',sans-serif;
+  --font-body:'Inter',sans-serif;
+  --font-mono:'JetBrains Mono',monospace;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+html{scroll-behavior:smooth;}
+body{
+  background:
+    radial-gradient(1200px 600px at 15% -10%, rgba(34,211,184,0.06), transparent 60%),
+    radial-gradient(1000px 500px at 90% 10%, rgba(91,140,255,0.05), transparent 60%),
+    var(--bg);
+  color:var(--text-1);
+  font-family:var(--font-body);
+  line-height:1.6;
+  min-height:100vh;
+}
+@media (prefers-reduced-motion: reduce){
+  *{animation-duration:0.01ms !important; transition-duration:0.01ms !important;}
+}
+::selection{background:var(--accent-dim); color:var(--accent);}
+::-webkit-scrollbar{width:10px;height:10px;}
+::-webkit-scrollbar-track{background:transparent;}
+::-webkit-scrollbar-thumb{background:var(--border-hover); border-radius:8px;}
+
+/* ---------- progress bar ---------- */
+#progress-bar{
+  position:fixed; top:0; left:0; height:3px; width:0%;
+  background:linear-gradient(90deg,var(--accent),var(--accent-2));
+  z-index:1000; transition:width 0.1s ease-out;
+  box-shadow:0 0 8px rgba(34,211,184,0.6);
+}
+
+/* ---------- topbar ---------- */
+#topbar{
+  position:fixed; top:0; left:0; right:0; height:60px; z-index:900;
+  background:rgba(10,14,20,0.85); backdrop-filter:blur(14px);
+  border-bottom:1px solid var(--border);
+  display:flex; align-items:center; padding:0 20px; gap:16px;
+}
+.brand{display:flex; align-items:center; gap:10px; font-family:var(--font-display); font-weight:700; font-size:16px; letter-spacing:0.2px; white-space:nowrap;}
+.brand-by{font-family:var(--font-body); font-weight:500; font-size:12px; color:var(--text-3); margin-left:2px;}
+.brand-by a{color:var(--accent); text-decoration:none;}
+.brand-by a:hover{text-decoration:underline;}
+@media(max-width:640px){.brand-by{display:none;}}
+.brand .mark{
+  width:30px;height:30px;border-radius:8px;
+  background:linear-gradient(135deg,var(--accent),var(--accent-2));
+  display:flex;align-items:center;justify-content:center;
+  color:#05100e; font-weight:700;
+}
+#menu-toggle{display:none; background:none;border:none;color:var(--text-2);cursor:pointer;}
+.search-wrap{
+  flex:1; max-width:420px; position:relative; margin-left:8px;
+}
+#search-input{
+  width:100%; background:var(--glass); border:1px solid var(--border);
+  color:var(--text-1); padding:9px 14px 9px 38px; border-radius:8px;
+  font-size:13px; font-family:var(--font-body); outline:none;
+  transition:border-color .2s, background .2s;
+}
+#search-input:focus{border-color:var(--accent); background:rgba(34,211,184,0.05);}
+.search-wrap svg{position:absolute; left:12px; top:50%; transform:translateY(-50%); color:var(--text-3); width:16px;height:16px;}
+.kbd-hint{
+  position:absolute; right:10px; top:50%; transform:translateY(-50%);
+  font-family:var(--font-mono); font-size:10px; color:var(--text-3);
+  border:1px solid var(--border); padding:1px 6px; border-radius:4px;
+}
+.topbar-right{display:flex;align-items:center;gap:16px; margin-left:auto;}
+#reading-time{font-size:12px; color:var(--text-3); font-family:var(--font-mono); white-space:nowrap;}
+.gh-link{color:var(--text-2); display:flex; align-items:center;}
+.gh-link:hover{color:var(--text-1);}
+
+/* ---------- layout ---------- */
+#shell{display:flex; padding-top:60px; max-width:1440px; margin:0 auto;}
+#sidebar{
+  width:var(--sidebar-w); flex-shrink:0; height:calc(100vh - 60px);
+  position:sticky; top:60px; overflow-y:auto; padding:26px 14px 60px 20px;
+  border-right:1px solid var(--border);
+}
+#sidebar .cat{
+  font-size:11px; text-transform:uppercase; letter-spacing:1.2px; color:var(--text-3);
+  margin:22px 0 8px; font-weight:600;
+}
+#sidebar .cat:first-child{margin-top:0;}
+#sidebar a{
+  display:flex; align-items:center; gap:9px;
+  color:var(--text-2); text-decoration:none; font-size:13.5px;
+  padding:7px 10px; border-radius:7px; margin-bottom:2px;
+  border-left:2px solid transparent; transition:all .15s;
+}
+#sidebar a:hover{color:var(--text-1); background:var(--glass);}
+#sidebar a.active{color:var(--accent); background:var(--accent-dim); border-left-color:var(--accent);}
+#sidebar a svg{width:15px;height:15px; flex-shrink:0; opacity:0.8;}
+
+main{flex:1; min-width:0; padding:40px 48px 120px; max-width:820px;}
+#toc{
+  width:var(--toc-w); flex-shrink:0; height:calc(100vh - 60px); position:sticky; top:60px;
+  padding:34px 16px 40px 0; overflow-y:auto;
+}
+#toc .toc-title{font-size:11px; text-transform:uppercase; letter-spacing:1.2px; color:var(--text-3); margin-bottom:12px; font-weight:600;}
+#toc a{display:block; font-size:12.5px; color:var(--text-3); text-decoration:none; padding:4px 0 4px 12px; border-left:1px solid var(--border); transition:all .15s;}
+#toc a:hover, #toc a.active{color:var(--accent); border-left-color:var(--accent);}
+
+/* ---------- sections ---------- */
+section.doc-section{padding-top:70px; margin-top:-70px;}
+.eyebrow{
+  font-family:var(--font-mono); font-size:11.5px; color:var(--accent);
+  text-transform:uppercase; letter-spacing:1.5px; margin-bottom:10px; display:block;
+}
+h1{font-family:var(--font-display); font-size:42px; font-weight:700; margin-bottom:14px; letter-spacing:-0.5px;}
+h2{font-family:var(--font-display); font-size:28px; font-weight:700; margin:52px 0 16px; letter-spacing:-0.3px; scroll-margin-top:80px;}
+h3{font-family:var(--font-display); font-size:19px; font-weight:600; margin:30px 0 10px;}
+p{color:var(--text-2); font-size:15px; margin-bottom:14px; max-width:70ch;}
+strong{color:var(--text-1); font-weight:600;}
+a.inline-link{color:var(--accent); text-decoration:none; border-bottom:1px solid rgba(34,211,184,0.35);}
+ul.std, ol.std{margin:14px 0 18px 0; padding-left:20px; color:var(--text-2); font-size:14.5px;}
+ul.std li, ol.std li{margin-bottom:7px;}
+.lede{font-size:17px; color:var(--text-2); max-width:65ch; margin-bottom:28px;}
+
+/* hero */
+.hero{padding:34px 0 10px;}
+.hero-badges{display:flex; gap:8px; margin-bottom:18px; flex-wrap:wrap;}
+.badge{font-family:var(--font-mono); font-size:11px; padding:4px 10px; border-radius:20px; border:1px solid var(--border); color:var(--text-3);}
+
+/* callouts */
+.callout{
+  border-radius:12px; padding:16px 18px; margin:18px 0; border:1px solid var(--border);
+  background:var(--glass); display:flex; gap:12px; align-items:flex-start;
+}
+.callout svg{flex-shrink:0; margin-top:2px;}
+.callout p{margin:0; font-size:14px;}
+.callout.info{border-color:rgba(91,140,255,0.3); background:rgba(91,140,255,0.06);}
+.callout.info svg{color:var(--accent-2);}
+.callout.warn{border-color:rgba(255,182,72,0.3); background:var(--warn-dim);}
+.callout.warn svg{color:var(--warn);}
+.callout.danger{border-color:rgba(255,92,114,0.3); background:var(--danger-dim);}
+.callout.danger svg{color:var(--danger);}
+.callout.success{border-color:rgba(34,211,184,0.3); background:var(--accent-dim);}
+.callout.success svg{color:var(--accent);}
+.callout.reel{border-color:rgba(91,140,255,0.35); background:linear-gradient(135deg, rgba(91,140,255,0.08), rgba(34,211,184,0.06));}
+.callout.reel svg{color:var(--accent-2);}
+.callout strong{display:block; margin-bottom:3px; font-size:13px;}
+
+/* cards */
+.grid{display:grid; gap:14px; margin:18px 0 24px;}
+.grid.cols-2{grid-template-columns:1fr 1fr;}
+.grid.cols-3{grid-template-columns:repeat(3,1fr);}
+@media(max-width:720px){.grid.cols-2,.grid.cols-3{grid-template-columns:1fr;}}
+.card{
+  background:linear-gradient(180deg, var(--bg-elevated), var(--bg-panel));
+  border:1px solid var(--border); border-radius:14px; padding:20px;
+  transition:transform .2s, border-color .2s, box-shadow .2s;
+}
+.card:hover{transform:translateY(-2px); border-color:var(--border-hover); box-shadow:0 12px 30px rgba(0,0,0,0.35);}
+.card .icon-wrap{
+  width:36px;height:36px;border-radius:9px; background:var(--accent-dim); color:var(--accent);
+  display:flex;align-items:center;justify-content:center; margin-bottom:12px;
+}
+.card h4{font-family:var(--font-display); font-size:15.5px; margin-bottom:6px;}
+.card p{font-size:13.5px; margin-bottom:0;}
+
+/* real-world use case strip */
+.usecase-strip{display:flex; gap:12px; overflow-x:auto; padding:6px 2px 14px; margin-bottom:8px;}
+.usecase{
+  min-width:160px; flex-shrink:0; background:var(--glass); border:1px solid var(--border);
+  border-radius:12px; padding:16px; text-align:center; transition:.2s;
+}
+.usecase:hover{border-color:var(--accent); background:var(--accent-dim);}
+.usecase svg{width:26px;height:26px; color:var(--accent); margin-bottom:8px;}
+.usecase div{font-size:12.5px; color:var(--text-2); font-weight:500;}
+
+/* code blocks */
+.code-block{
+  position:relative; background:#0d1117; border:1px solid var(--border); border-radius:10px;
+  margin:16px 0 22px; overflow:hidden;
+}
+.code-block .code-head{
+  display:flex; align-items:center; justify-content:space-between;
+  padding:8px 14px; border-bottom:1px solid var(--border); background:rgba(255,255,255,0.02);
+}
+.code-block .code-lang{font-family:var(--font-mono); font-size:11px; color:var(--text-3); text-transform:uppercase; letter-spacing:1px;}
+.copy-btn{
+  display:flex; align-items:center; gap:5px; background:transparent; border:1px solid var(--border);
+  color:var(--text-3); font-size:11px; padding:4px 9px; border-radius:6px; cursor:pointer; font-family:var(--font-body);
+  transition:.15s;
+}
+.copy-btn:hover{color:var(--accent); border-color:var(--accent);}
+.copy-btn svg{width:12px;height:12px;}
+pre{padding:16px; overflow-x:auto; font-family:var(--font-mono); font-size:12.8px; line-height:1.65;}
+code{font-family:var(--font-mono);}
+.tok-kw{color:#ff7ab6;} .tok-str{color:#a5e075;} .tok-com{color:#5f6b82;} .tok-fn{color:#7dd3fc;} .tok-num{color:#ffb648;} .tok-prop{color:#82e6d5;}
+
+/* tables */
+.table-wrap{overflow-x:auto; margin:16px 0 26px; border:1px solid var(--border); border-radius:12px;}
+table{width:100%; border-collapse:collapse; font-size:13.5px; min-width:560px;}
+thead th{
+  text-align:left; padding:12px 16px; background:var(--bg-elevated); color:var(--text-1);
+  font-family:var(--font-display); font-weight:600; font-size:12.5px; text-transform:uppercase; letter-spacing:0.5px;
+  border-bottom:1px solid var(--border);
+}
+tbody td{padding:12px 16px; border-bottom:1px solid var(--border); color:var(--text-2);}
+tbody tr:last-child td{border-bottom:none;}
+tbody tr:hover{background:var(--glass);}
+td.pos{color:var(--accent);} td.neg{color:var(--danger);}
+
+/* flow diagram */
+.flow-diagram{
+  background:var(--glass); border:1px solid var(--border); border-radius:16px; padding:30px 20px; margin:20px 0 28px;
+}
+.flow-row{display:flex; align-items:center; justify-content:center; gap:14px; flex-wrap:wrap;}
+.flow-node{
+  background:var(--bg-elevated); border:1px solid var(--border-hover); border-radius:10px;
+  padding:12px 16px; font-size:12.5px; font-family:var(--font-mono); text-align:center; min-width:110px;
+  position:relative;
+}
+.flow-node.accent{border-color:var(--accent); box-shadow:0 0 0 1px rgba(34,211,184,0.2);}
+.flow-arrow{color:var(--text-3); font-size:18px; flex-shrink:0;}
+.flow-vertical{display:flex; flex-direction:column; align-items:center; gap:8px; margin:14px 0;}
+
+/* timeline */
+.timeline{position:relative; margin:24px 0; padding-left:26px;}
+.timeline::before{content:''; position:absolute; left:8px; top:6px; bottom:6px; width:2px; background:linear-gradient(180deg,var(--accent),var(--accent-2),var(--danger));}
+.tl-item{position:relative; margin-bottom:22px;}
+.tl-item::before{content:''; position:absolute; left:-26px; top:3px; width:12px; height:12px; border-radius:50%; background:var(--bg); border:2px solid var(--accent);}
+.tl-item h4{font-family:var(--font-display); font-size:14.5px; margin-bottom:3px;}
+.tl-item p{font-size:13px; margin-bottom:0;}
+
+/* accordion */
+.accordion-item{border:1px solid var(--border); border-radius:10px; margin-bottom:10px; overflow:hidden; background:var(--glass);}
+.accordion-head{
+  display:flex; align-items:center; justify-content:space-between; padding:14px 18px; cursor:pointer;
+  font-family:var(--font-display); font-size:14.5px; font-weight:600; user-select:none;
+}
+.accordion-head svg{transition:transform .25s; color:var(--text-3); width:16px; height:16px; flex-shrink:0;}
+.accordion-item.open .accordion-head svg{transform:rotate(180deg); color:var(--accent);}
+.accordion-body{max-height:0; overflow:hidden; transition:max-height .3s ease;}
+.accordion-body-inner{padding:0 18px 16px; font-size:13.5px; color:var(--text-2);}
+
+/* attack cards */
+.attack-card{
+  border:1px solid var(--border); border-radius:14px; margin-bottom:16px; overflow:hidden;
+  background:linear-gradient(180deg, var(--bg-elevated), var(--bg-panel));
+}
+.attack-head{padding:18px 20px; display:flex; align-items:center; gap:14px; cursor:pointer; justify-content:space-between;}
+.attack-head-left{display:flex; align-items:center; gap:14px;}
+.attack-icon{width:40px;height:40px;border-radius:10px; background:var(--danger-dim); color:var(--danger); display:flex;align-items:center;justify-content:center; flex-shrink:0;}
+.attack-title h4{font-family:var(--font-display); font-size:16px;}
+.sev{font-size:10.5px; font-family:var(--font-mono); padding:2px 8px; border-radius:20px; text-transform:uppercase; letter-spacing:0.5px;}
+.sev.critical{background:var(--danger-dim); color:var(--danger);}
+.sev.high{background:var(--warn-dim); color:var(--warn);}
+.sev.medium{background:var(--accent-dim); color:var(--accent);}
+.attack-body{max-height:0; overflow:hidden; transition:max-height .35s ease; border-top:0 solid var(--border);}
+.attack-card.open .attack-body{border-top:1px solid var(--border);}
+.attack-body-inner{padding:20px;}
+.attack-body-inner h5{font-family:var(--font-display); font-size:12px; text-transform:uppercase; letter-spacing:0.8px; color:var(--accent); margin:16px 0 6px;}
+.attack-body-inner h5:first-child{margin-top:0;}
+.attack-body-inner p{font-size:13.5px;}
+.chevron-toggle{color:var(--text-3); transition:transform .25s; flex-shrink:0;}
+.attack-card.open .chevron-toggle{transform:rotate(180deg); color:var(--danger);}
+
+/* checklist */
+.checklist{list-style:none; margin:16px 0 26px;}
+.checklist li{
+  display:flex; align-items:flex-start; gap:10px; padding:10px 0; border-bottom:1px solid var(--border); font-size:13.5px; color:var(--text-2);
+}
+.checklist li:last-child{border-bottom:none;}
+.checklist input[type=checkbox]{
+  appearance:none; width:18px; height:18px; border:1.5px solid var(--border-hover); border-radius:5px; flex-shrink:0;
+  cursor:pointer; margin-top:1px; position:relative; transition:.15s;
+}
+.checklist input[type=checkbox]:checked{background:var(--accent); border-color:var(--accent);}
+.checklist input[type=checkbox]:checked::after{content:'✓'; position:absolute; inset:0; display:flex; align-items:center; justify-content:center; font-size:12px; color:#05100e; font-weight:700;}
+.checklist label{cursor:pointer;}
+.checklist .tag{font-family:var(--font-mono); font-size:10px; color:var(--text-3); border:1px solid var(--border); padding:1px 6px; border-radius:4px; margin-left:auto; flex-shrink:0;}
+#checklist-progress{font-size:12.5px; color:var(--accent); font-family:var(--font-mono); margin-bottom:10px;}
+
+/* tool cards */
+.tool-card{display:flex; gap:14px; padding:16px; border:1px solid var(--border); border-radius:12px; background:var(--glass); margin-bottom:10px; align-items:flex-start;}
+.tool-card .icon-wrap{background:var(--accent-dim); color:var(--accent); width:38px;height:38px;border-radius:9px;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.tool-card h4{font-family:var(--font-display); font-size:14.5px; margin-bottom:3px;}
+.tool-card p{font-size:13px; margin-bottom:0;}
+
+/* quiz */
+.quiz-card{border:1px solid var(--border); border-radius:14px; padding:22px; background:var(--glass); margin-bottom:16px;}
+.quiz-q{font-family:var(--font-display); font-size:15px; margin-bottom:14px;}
+.quiz-opts{display:flex; flex-direction:column; gap:8px;}
+.quiz-opt{
+  text-align:left; background:var(--bg-elevated); border:1px solid var(--border); color:var(--text-2);
+  padding:11px 14px; border-radius:8px; cursor:pointer; font-size:13.5px; font-family:var(--font-body); transition:.15s;
+}
+.quiz-opt:hover{border-color:var(--border-hover);}
+.quiz-opt.correct{border-color:var(--accent); background:var(--accent-dim); color:var(--accent);}
+.quiz-opt.wrong{border-color:var(--danger); background:var(--danger-dim); color:var(--danger);}
+.quiz-feedback{margin-top:10px; font-size:13px; color:var(--text-3); display:none;}
+
+/* footer / summary */
+.recap-grid{display:grid; grid-template-columns:repeat(3,1fr); gap:14px; margin:20px 0;}
+@media(max-width:720px){.recap-grid{grid-template-columns:1fr;}}
+.recap-num{font-family:var(--font-display); font-size:30px; color:var(--accent); font-weight:700;}
+.recap-label{font-size:12.5px; color:var(--text-3); margin-top:4px;}
+
+footer{border-top:1px solid var(--border); margin-top:60px; padding-top:30px; text-align:center; color:var(--text-3); font-size:12.5px;}
+.footer-follow{
+  display:flex; align-items:center; gap:14px; text-align:left; max-width:520px; margin:0 auto;
+  border:1px solid var(--border); border-radius:14px; padding:16px 18px; background:var(--glass);
+}
+.footer-follow-icon{width:40px;height:40px;border-radius:10px; background:linear-gradient(135deg,var(--accent),var(--accent-2)); color:#05100e; display:flex;align-items:center;justify-content:center; flex-shrink:0;}
+.footer-follow strong{display:block; color:var(--text-1); font-family:var(--font-display); font-size:14px;}
+.footer-follow p{margin:2px 0 0; font-size:12.5px;}
+.follow-btn{
+  margin-left:auto; flex-shrink:0; display:flex; align-items:center; gap:5px;
+  background:var(--accent-dim); color:var(--accent); border:1px solid rgba(34,211,184,0.35);
+  padding:8px 14px; border-radius:8px; font-size:12.5px; font-weight:600; text-decoration:none; transition:.15s;
+}
+.follow-btn:hover{background:var(--accent); color:#05100e;}
+@media(max-width:520px){.footer-follow{flex-wrap:wrap;} .follow-btn{margin-left:0;}}
+
+/* interview / bug bounty tip boxes */
+.tip-row{display:flex; gap:12px; margin:18px 0;}
+@media(max-width:640px){.tip-row{flex-direction:column;}}
+.tip-box{flex:1; border:1px solid var(--border); border-radius:12px; padding:16px; background:var(--glass);}
+.tip-box .tip-label{font-family:var(--font-mono); font-size:10.5px; text-transform:uppercase; letter-spacing:1px; color:var(--text-3); margin-bottom:8px; display:flex; align-items:center; gap:6px;}
+.tip-box p{font-size:13px; margin-bottom:0;}
+
+/* mobile */
+@media(max-width:1180px){ #toc{display:none;} }
+@media(max-width:880px){
+  #sidebar{
+    position:fixed; left:0; top:60px; bottom:0; z-index:850; background:var(--bg);
+    transform:translateX(-100%); transition:transform .25s; width:270px;
+  }
+  #sidebar.open{transform:translateX(0); box-shadow:20px 0 40px rgba(0,0,0,0.4);}
+  #menu-toggle{display:flex;}
+  main{padding:30px 22px 100px;}
+  .search-wrap{display:none;}
+  h1{font-size:32px;}
+  .grid.cols-3{grid-template-columns:1fr;}
+}
+.scrim{display:none; position:fixed; inset:0; top:60px; background:rgba(0,0,0,0.5); z-index:840;}
+.scrim.show{display:block;}
+</style>
+</head>
+<body>
+
+<div id="progress-bar"></div>
+
+<header id="topbar">
+  <button id="menu-toggle" aria-label="Toggle navigation"><i data-lucide="menu"></i></button>
+  <div class="brand"><span class="mark"><i data-lucide="key-round" style="width:16px;height:16px;"></i></span> Web Sessions <span class="brand-by">by <a href="https://www.instagram.com/niksbytez/" target="_blank" rel="noopener">@niksbytez</a></span></div>
+  <div class="search-wrap">
+    <i data-lucide="search"></i>
+    <input id="search-input" type="text" placeholder="Search the guide…">
+    <span class="kbd-hint">/</span>
+  </div>
+  <div class="topbar-right">
+    <span id="reading-time"><i data-lucide="clock" style="width:12px;height:12px;vertical-align:-2px;"></i> — min read</span>
+    <a class="gh-link" href="https://www.instagram.com/niksbytez/" target="_blank" rel="noopener" title="Follow @niksbytez on Instagram"><i data-lucide="instagram"></i></a>
+    <a class="gh-link" href="#" title="View source" onclick="return false;"><i data-lucide="github"></i></a>
+  </div>
+</header>
+
+<div class="scrim" id="scrim"></div>
+
+<div id="shell">
+<!-- SIDEBAR -->
+<nav id="sidebar">
+  <div class="cat">Foundations</div>
+  <a href="#intro" data-icon="home"><i data-lucide="home"></i>Introduction</a>
+  <a href="#what-is-session" data-icon="fingerprint"><i data-lucide="fingerprint"></i>What is a Session?</a>
+  <a href="#why-needed" data-icon="layers"><i data-lucide="layers"></i>Why Sessions are Needed</a>
+
+  <div class="cat">Session Mechanics</div>
+  <a href="#how-created" data-icon="git-branch"><i data-lucide="git-branch"></i>How Sessions are Created</a>
+  <a href="#lifecycle" data-icon="refresh-cw"><i data-lucide="refresh-cw"></i>Session Lifecycle</a>
+  <a href="#storage" data-icon="database"><i data-lucide="database"></i>Session Storage</a>
+
+  <div class="cat">Cookies</div>
+  <a href="#cookies-vs-sessions" data-icon="scale"><i data-lucide="scale"></i>Cookies vs Sessions</a>
+  <a href="#cookie-attributes" data-icon="cookie"><i data-lucide="cookie"></i>Cookie Attributes</a>
+
+  <div class="cat">Security</div>
+  <a href="#session-security" data-icon="shield-check"><i data-lucide="shield-check"></i>Session Security</a>
+  <a href="#attacks" data-icon="bug"><i data-lucide="bug"></i>Session Attacks</a>
+  <a href="#bug-hunter" data-icon="search-code"><i data-lucide="search-code"></i>Bug Hunter Guide</a>
+
+  <div class="cat">Practices</div>
+  <a href="#dev-practices" data-icon="terminal"><i data-lucide="terminal"></i>Developer Best Practices</a>
+  <a href="#user-practices" data-icon="user-check"><i data-lucide="user-check"></i>User Best Practices</a>
+
+  <div class="cat">Practice &amp; Reference</div>
+  <a href="#labs" data-icon="flask-conical"><i data-lucide="flask-conical"></i>Hands-on Labs</a>
+  <a href="#tools" data-icon="wrench"><i data-lucide="wrench"></i>Tools</a>
+  <a href="#case-studies" data-icon="newspaper"><i data-lucide="newspaper"></i>Case Studies</a>
+  <a href="#owasp" data-icon="book-marked"><i data-lucide="book-marked"></i>OWASP References</a>
+  <a href="#quiz" data-icon="help-circle"><i data-lucide="help-circle"></i>Quiz</a>
+  <a href="#summary" data-icon="flag"><i data-lucide="flag"></i>Summary</a>
+</nav>
+
+<!-- MAIN -->
+<main id="main-content">
+
+<section class="doc-section hero" id="intro">
+  <span class="eyebrow">01 · Foundations</span>
+  <h1>Web Sessions, Explained Properly</h1>
+  <p class="lede">A field guide to how the web remembers who you are — from the stateless nature of HTTP to session hijacking, cookie flags, and the exact checklist a penetration tester runs before signing off on an app.</p>
+  <div class="hero-badges">
+    <span class="badge">17 sections</span>
+    <span class="badge">Beginner → Advanced</span>
+    <span class="badge">OWASP-aligned</span>
+    <span class="badge">Bug-bounty ready</span>
+  </div>
+
+  <div class="callout reel">
+    <i data-lucide="instagram"></i>
+    <div>
+      <strong>Came here from the reel?</strong>
+      <p>This page is the extended write-up for the session-hacking reel on <a class="inline-link" href="https://www.instagram.com/niksbytez/" target="_blank" rel="noopener">@niksbytez</a> — every attack shown in 60 seconds gets the full definition, real example, and fix here. Follow for more breakdowns like this one.</p>
+    </div>
+  </div>
+
+  <h2 id="what-is-http" style="margin-top:34px;">What is HTTP?</h2>
+  <p>HTTP (HyperText Transfer Protocol) is the request/response protocol that powers the web. A browser sends a <strong>request</strong> ("give me this page"), and a server sends back a <strong>response</strong> (the page). That's the entire contract — nothing more is promised.</p>
+
+  <div class="flow-diagram">
+    <div class="flow-row">
+      <div class="flow-node accent"><i data-lucide="monitor" style="width:18px;height:18px;"></i><br>Browser</div>
+      <div class="flow-arrow">→ GET /dashboard →</div>
+      <div class="flow-node"><i data-lucide="server" style="width:18px;height:18px;"></i><br>Server</div>
+    </div>
+    <div class="flow-row" style="margin-top:10px;">
+      <div class="flow-node accent"><i data-lucide="monitor" style="width:18px;height:18px;"></i><br>Browser</div>
+      <div class="flow-arrow">← 200 OK, HTML ←</div>
+      <div class="flow-node"><i data-lucide="server" style="width:18px;height:18px;"></i><br>Server</div>
+    </div>
+  </div>
+
+  <h2 id="why-stateless">Why HTTP is Stateless</h2>
+  <p>Every HTTP request is handled in total isolation. The server has no built-in memory of the request before it — no concept of "this is the same visitor who logged in ten seconds ago." Each connection is opened, answered, and forgotten. This was a deliberate design choice: statelessness keeps servers simple and lets any server in a cluster answer any request, which is exactly what let the web scale to billions of documents.</p>
+
+  <div class="callout warn">
+    <i data-lucide="alert-triangle"></i>
+    <div><strong>The problem this creates</strong><p>Without memory between requests, a server can't tell that "the person adding item #4 to a cart" is the same person who "clicked login" thirty seconds earlier. Every request looks like a stranger walking in off the street.</p></div>
+  </div>
+
+  <h2 id="why-sessions-exist">Why Sessions Exist</h2>
+  <p>Sessions are the patch the industry standardized on to give stateless HTTP a memory. Instead of re-authenticating on every single request, the server issues the browser a small token after login. The browser hands that token back on every subsequent request, and the server uses it to look up who's asking. That token — and the server-side data tied to it — is the <strong>session</strong>.</p>
+</section>
+
+<section class="doc-section" id="what-is-session">
+  <span class="eyebrow">02 · Foundations</span>
+  <h2 style="margin-top:0;">What is a Session?</h2>
+  <p>A session is a temporary, server-recognized relationship between a specific browser and a specific user, held together by an unpredictable identifier. Four ideas sit underneath that definition:</p>
+
+  <div class="grid cols-2">
+    <div class="card">
+      <div class="icon-wrap"><i data-lucide="key"></i></div>
+      <h4>Authentication</h4>
+      <p>Proving who you are — usually once, at login, with a password, passkey, or MFA code.</p>
+    </div>
+    <div class="card">
+      <div class="icon-wrap"><i data-lucide="shield"></i></div>
+      <h4>Authorization</h4>
+      <p>Deciding what an authenticated identity is allowed to do — read this record, edit that one, not that other one.</p>
+    </div>
+    <div class="card">
+      <div class="icon-wrap"><i data-lucide="database"></i></div>
+      <h4>User State</h4>
+      <p>The context the app remembers about you across requests: cart contents, draft text, preferences, scroll position.</p>
+    </div>
+    <div class="card">
+      <div class="icon-wrap"><i data-lucide="hash"></i></div>
+      <h4>Session Identifier</h4>
+      <p>The random string — a "session ID" — that ties a browser to its server-side state without re-sending credentials each time.</p>
+    </div>
+  </div>
+
+  <div class="callout info">
+    <i data-lucide="info"></i>
+    <div><strong>Authentication ≠ Authorization</strong><p>Authentication answers "who are you?" once. Authorization is checked continuously — a valid session proves identity, but every action still needs its own permission check.</p></div>
+  </div>
+</section>
+
+<section class="doc-section" id="why-needed">
+  <span class="eyebrow">03 · Foundations</span>
+  <h2 style="margin-top:0;">Why Sessions are Needed</h2>
+  <p>Almost every product you use daily depends on sessions to feel continuous rather than amnesiac. A few concrete cases:</p>
+
+  <div class="usecase-strip">
+    <div class="usecase"><i data-lucide="shopping-cart"></i><div>Shopping Cart</div></div>
+    <div class="usecase"><i data-lucide="tv"></i><div>Netflix</div></div>
+    <div class="usecase"><i data-lucide="instagram"></i><div>Instagram</div></div>
+    <div class="usecase"><i data-lucide="users"></i><div>Facebook</div></div>
+    <div class="usecase"><i data-lucide="landmark"></i><div>Banking</div></div>
+    <div class="usecase"><i data-lucide="mail"></i><div>Email</div></div>
+    <div class="usecase"><i data-lucide="lock"></i><div>Admin Panels</div></div>
+  </div>
+
+  <ul class="std">
+    <li><strong>Shopping cart</strong> — items added on the product page must still be there at checkout, three pages and two minutes later. Without a session, the cart resets on every click.</li>
+    <li><strong>Netflix</strong> — resume-watch position, per-profile recommendations, and "who's logged in on this TV" all hang off a session tied to your device.</li>
+    <li><strong>Instagram / Facebook</strong> — your feed, likes, and DMs are all scoped to an authenticated session; log out and the app has no idea who you are.</li>
+    <li><strong>Banking</strong> — arguably the highest-stakes case: a session must prove identity on every transfer request while expiring aggressively to limit exposure if a device is lost.</li>
+    <li><strong>Email</strong> — one login should let you read, send, and archive across an entire browsing session without re-typing a password per action.</li>
+    <li><strong>Admin panels</strong> — privileged sessions gate destructive actions (delete user, change billing) behind a stronger identity guarantee than a regular customer session.</li>
+  </ul>
+</section>
+
+<section class="doc-section" id="how-created">
+  <span class="eyebrow">04 · Session Mechanics</span>
+  <h2 style="margin-top:0;">How Sessions are Created</h2>
+  <p>The login flow is where a session is born. Here's the canonical sequence from credentials to an authenticated request:</p>
+
+  <div class="flow-diagram">
+    <div class="flow-vertical">
+      <div class="flow-node accent">User submits credentials</div>
+      <div class="flow-arrow">↓</div>
+      <div class="flow-node">Server receives request</div>
+      <div class="flow-arrow">↓</div>
+      <div class="flow-node">Authentication check (password / MFA)</div>
+      <div class="flow-arrow">↓</div>
+      <div class="flow-node accent">Generate high-entropy Session ID</div>
+      <div class="flow-arrow">↓</div>
+      <div class="flow-node">Store session server-side (memory / Redis / DB)</div>
+      <div class="flow-arrow">↓</div>
+      <div class="flow-node accent">Send <code>Set-Cookie</code> header to browser</div>
+      <div class="flow-arrow">↓</div>
+      <div class="flow-node">Browser stores cookie</div>
+      <div class="flow-arrow">↓</div>
+      <div class="flow-node accent">Cookie sent automatically on every future request</div>
+    </div>
+  </div>
+
+  <h3>What the server actually sends</h3>
+  <div class="code-block">
+    <div class="code-head"><span class="code-lang">http response</span><button class="copy-btn" onclick="copyCode(this)"><i data-lucide="copy"></i>Copy</button></div>
+    <pre><code><span class="tok-kw">HTTP/1.1</span> 200 OK
+<span class="tok-prop">Set-Cookie:</span> <span class="tok-str">sessionId=8f14e45fceea167a5a36dedd4bea2543; HttpOnly; Secure; SameSite=Strict; Path=/; Max-Age=3600</span>
+<span class="tok-prop">Content-Type:</span> application/json
+
+{"status":"authenticated","user":"jane.doe"}</code></pre>
+  </div>
+
+  <p>From that point on, the browser automatically attaches <code>Cookie: sessionId=8f14e45f...</code> to every request to that domain — no JavaScript required, no re-login. The server looks up that ID in its session store and reattaches the user's identity to the request.</p>
+</section>
+
+<section class="doc-section" id="lifecycle">
+  <span class="eyebrow">05 · Session Mechanics</span>
+  <h2 style="margin-top:0;">Session Lifecycle</h2>
+  <p>A session isn't permanent — it has a birth, an active life, and a death. Understanding this lifecycle is central to both building and attacking session systems.</p>
+
+  <div class="timeline">
+    <div class="tl-item"><h4>Login</h4><p>Credentials verified; identity established.</p></div>
+    <div class="tl-item"><h4>Create Session</h4><p>Random ID generated, server-side record created, cookie issued.</p></div>
+    <div class="tl-item"><h4>Use Session</h4><p>Every authenticated request references the session; server checks validity and refreshes activity timestamps.</p></div>
+    <div class="tl-item"><h4>Timeout</h4><p>Idle timeout (no activity for N minutes) or absolute timeout (hard cap regardless of activity) is reached.</p></div>
+    <div class="tl-item"><h4>Destroy Session</h4><p>Server deletes the session record and expires the cookie; the ID becomes permanently useless.</p></div>
+  </div>
+
+  <div class="callout success">
+    <i data-lucide="check-circle-2"></i>
+    <div><strong>Design rule</strong><p>A dead session ID should be indistinguishable from a random guess — no partial validity, no "expired but still readable" states that leak information.</p></div>
+  </div>
+</section>
+
+<section class="doc-section" id="storage">
+  <span class="eyebrow">06 · Session Mechanics</span>
+  <h2 style="margin-top:0;">Session Storage</h2>
+  <p>The session ID is just a pointer. Where the actual session <em>data</em> lives is a separate architectural decision, each with real trade-offs.</p>
+
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Store</th><th>Pros</th><th>Cons</th></tr></thead>
+      <tbody>
+        <tr><td><strong>In-Memory</strong></td><td class="pos">Fastest possible reads/writes</td><td class="neg">Lost on restart; doesn't scale across servers</td></tr>
+        <tr><td><strong>Redis</strong></td><td class="pos">Fast, supports TTL natively, shared across servers</td><td class="neg">Extra infrastructure to run and secure</td></tr>
+        <tr><td><strong>Database</strong></td><td class="pos">Durable, queryable, easy to audit</td><td class="neg">Slower than in-memory stores under load</td></tr>
+        <tr><td><strong>Memcached</strong></td><td class="pos">Very fast, simple key-value model</td><td class="neg">No persistence — a restart wipes all sessions</td></tr>
+        <tr><td><strong>Filesystem</strong></td><td class="pos">Zero extra dependencies</td><td class="neg">Doesn't scale horizontally; slow at volume</td></tr>
+        <tr><td><strong>JWT (stateless)</strong></td><td class="pos">No server-side store needed; scales trivially</td><td class="neg">Hard to revoke early; larger payload sent every request</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="callout warn">
+    <i data-lucide="alert-triangle"></i>
+    <div><strong>JWT is not automatically a "session"</strong><p>A stateless JWT can't be invalidated server-side without extra machinery (a denylist or short expiry + refresh tokens). Treating JWTs as a drop-in session replacement without that machinery is a common source of "I logged out but I'm still logged in" bugs.</p></div>
+  </div>
+</section>
+
+<section class="doc-section" id="cookies-vs-sessions">
+  <span class="eyebrow">07 · Cookies</span>
+  <h2 style="margin-top:0;">Cookies vs Sessions</h2>
+  <p>These two terms get conflated constantly. A cookie is a <strong>transport mechanism</strong>; a session is the <strong>server-side concept</strong> the cookie happens to reference.</p>
+
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Property</th><th>Cookie</th><th>Session</th></tr></thead>
+      <tbody>
+        <tr><td>Persistence</td><td>Can be persistent or expire with the browser tab</td><td>Typically short-lived by design</td></tr>
+        <tr><td>Storage location</td><td>Client-side (the browser)</td><td>Server-side (memory/DB/Redis) or self-contained (JWT)</td></tr>
+        <tr><td>Security</td><td>Only as safe as its flags (HttpOnly, Secure, SameSite)</td><td>Only as safe as ID entropy + server-side validation</td></tr>
+        <tr><td>Speed</td><td>Instant — sent automatically by the browser</td><td>Requires a server-side lookup per request (unless JWT)</td></tr>
+        <tr><td>Use cases</td><td>Session IDs, preferences, tracking, feature flags</td><td>Login state, cart contents, authorization context</td></tr>
+        <tr><td>Advantage</td><td>Universally supported, automatic transport</td><td>Full control server-side; instantly revocable</td></tr>
+        <tr><td>Disadvantage</td><td>Visible/tamperable if flags are misconfigured</td><td>Adds server-side storage and lookup cost</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section class="doc-section" id="cookie-attributes">
+  <span class="eyebrow">08 · Cookies</span>
+  <h2 style="margin-top:0;">Cookie Attributes</h2>
+  <p>Every flag on a <code>Set-Cookie</code> header is a security decision, not boilerplate. These are the ones that matter most.</p>
+
+  <div class="grid cols-2">
+    <div class="card"><div class="icon-wrap"><i data-lucide="lock"></i></div><h4>Secure</h4><p>Cookie is only ever sent over HTTPS — never in plaintext over HTTP, closing off casual network sniffing.</p></div>
+    <div class="card"><div class="icon-wrap"><i data-lucide="code-2"></i></div><h4>HttpOnly</h4><p>Cookie is invisible to <code>document.cookie</code> in JavaScript, so a successful XSS injection can't simply read it out.</p></div>
+    <div class="card"><div class="icon-wrap"><i data-lucide="shuffle"></i></div><h4>SameSite</h4><p><code>Strict</code>, <code>Lax</code>, or <code>None</code> — controls whether the cookie is sent on cross-site requests, which is the primary modern defense against CSRF.</p></div>
+    <div class="card"><div class="icon-wrap"><i data-lucide="calendar-clock"></i></div><h4>Expires / Max-Age</h4><p>Defines the cookie's lifetime. Session cookies (no Expires) die with the browser session; persistent cookies outlive it.</p></div>
+    <div class="card"><div class="icon-wrap"><i data-lucide="globe"></i></div><h4>Domain</h4><p>Scopes which hosts receive the cookie — set too broadly and it leaks to every subdomain, including less-trusted ones.</p></div>
+    <div class="card"><div class="icon-wrap"><i data-lucide="folder"></i></div><h4>Path</h4><p>Restricts the cookie to a URL path prefix — a narrower blast radius if part of the app is more sensitive than the rest.</p></div>
+  </div>
+
+  <div class="code-block">
+    <div class="code-head"><span class="code-lang">hardened cookie</span><button class="copy-btn" onclick="copyCode(this)"><i data-lucide="copy"></i>Copy</button></div>
+    <pre><code><span class="tok-prop">Set-Cookie:</span> <span class="tok-str">sessionId=Xk9...; Secure; HttpOnly; SameSite=Strict; Path=/; Max-Age=1800; Domain=app.example.com</span></code></pre>
+  </div>
+</section>
+
+<section class="doc-section" id="session-security">
+  <span class="eyebrow">09 · Security</span>
+  <h2 style="margin-top:0;">Session Security</h2>
+  <p>A session system's strength comes down to how unpredictable its IDs are, and how tightly its lifecycle is enforced.</p>
+
+  <div class="grid cols-3">
+    <div class="card"><div class="icon-wrap"><i data-lucide="dice-5"></i></div><h4>Entropy</h4><p>Session IDs need enough randomness (128+ bits) that guessing one is computationally infeasible.</p></div>
+    <div class="card"><div class="icon-wrap"><i data-lucide="shuffle"></i></div><h4>Random IDs</h4><p>Generated with a cryptographically secure RNG — never sequential counters or predictable patterns.</p></div>
+    <div class="card"><div class="icon-wrap"><i data-lucide="rotate-cw"></i></div><h4>Rotation</h4><p>Periodically issuing a fresh ID during a long session limits the usefulness of a leaked older one.</p></div>
+    <div class="card"><div class="icon-wrap"><i data-lucide="refresh-ccw"></i></div><h4>Regeneration</h4><p>Issuing a brand-new session ID immediately after login/privilege change, invalidating the pre-auth one.</p></div>
+    <div class="card"><div class="icon-wrap"><i data-lucide="timer"></i></div><h4>Expiration</h4><p>Sessions should die on their own — both from inactivity and from an absolute maximum age.</p></div>
+    <div class="card"><div class="icon-wrap"><i data-lucide="log-out"></i></div><h4>Logout</h4><p>Must destroy the session <em>server-side</em>, not just clear the cookie client-side.</p></div>
+    <div class="card"><div class="icon-wrap"><i data-lucide="hourglass"></i></div><h4>Idle Timeout</h4><p>Ends a session after a period with no activity — protects unattended, logged-in devices.</p></div>
+    <div class="card"><div class="icon-wrap"><i data-lucide="calendar-x"></i></div><h4>Absolute Timeout</h4><p>Ends a session after a fixed duration no matter how active the user is — bounds worst-case exposure.</p></div>
+    <div class="card"><div class="icon-wrap"><i data-lucide="smartphone"></i></div><h4>Device Tracking</h4><p>Recording device/browser fingerprints lets users (and systems) spot unfamiliar sign-ins.</p></div>
+    <div class="card"><div class="icon-wrap"><i data-lucide="link"></i></div><h4>Session Binding</h4><p>Tying a session loosely to IP range or user-agent adds friction for an attacker replaying a stolen cookie elsewhere.</p></div>
+  </div>
+</section>
+
+<section class="doc-section" id="attacks">
+  <span class="eyebrow">10 · Security</span>
+  <h2 style="margin-top:0;">Session Attacks</h2>
+  <p>The following are the session-related vulnerability classes tested for in every serious web application security assessment. Each card is expandable — click to see the full breakdown.</p>
+
+  <div id="attack-list"></div>
+</section>
+
+<section class="doc-section" id="bug-hunter">
+  <span class="eyebrow">11 · Security</span>
+  <h2 style="margin-top:0;">Bug Hunter Guide</h2>
+  <p>This section covers <strong>ethical, authorized testing only</strong> — performed against your own applications, a client's application under signed scope, or a platform's bug bounty program. Testing systems you don't own or lack permission to test is illegal in most jurisdictions.</p>
+
+  <div class="callout danger">
+    <i data-lucide="shield-alert"></i>
+    <div><strong>Scope first, always</strong><p>Confirm written authorization and defined scope before any active testing. Screenshots below are illustrative mockups of typical tooling output, not live target data.</p></div>
+  </div>
+
+  <h3>Session Testing Checklist</h3>
+  <p id="checklist-progress">0 / 14 checked</p>
+  <ul class="checklist" id="checklist">
+    <li><input type="checkbox"><label>Does the session ID change after login? (fixation check)</label><span class="tag">Fixation</span></li>
+    <li><input type="checkbox"><label>Is a fresh ID issued after any privilege change?</label><span class="tag">Rotation</span></li>
+    <li><input type="checkbox"><label>Are Secure, HttpOnly, and SameSite all present on the session cookie?</label><span class="tag">Cookie Flags</span></li>
+    <li><input type="checkbox"><label>Does an idle session actually expire at the stated timeout?</label><span class="tag">Timeout</span></li>
+    <li><input type="checkbox"><label>Does logout destroy the session server-side, not just clear the client cookie?</label><span class="tag">Logout</span></li>
+    <li><input type="checkbox"><label>Can the same account hold multiple valid concurrent sessions? Is that intended?</label><span class="tag">Concurrent</span></li>
+    <li><input type="checkbox"><label>Does "Remember Me" use a separate, appropriately-scoped long-lived token?</label><span class="tag">Remember Me</span></li>
+    <li><input type="checkbox"><label>Does changing role/permissions invalidate other active sessions for that user?</label><span class="tag">Role Changes</span></li>
+    <li><input type="checkbox"><label>Are state-changing requests protected by anti-CSRF tokens or SameSite enforcement?</label><span class="tag">CSRF</span></li>
+    <li><input type="checkbox"><label>Can a low-privilege session access high-privilege endpoints directly?</label><span class="tag">Privilege Esc.</span></li>
+    <li><input type="checkbox"><label>Can a captured request be resent later and still succeed? (nonce/timestamp check)</label><span class="tag">Replay</span></li>
+    <li><input type="checkbox"><label>If JWTs are used: is <code>alg:none</code> rejected, and is the signature verified server-side?</label><span class="tag">JWT</span></li>
+    <li><input type="checkbox"><label>Do OAuth redirect URIs use an allow-list rather than loose pattern matching?</label><span class="tag">OAuth</span></li>
+    <li><input type="checkbox"><label>Does SSO logout propagate to all connected service providers?</label><span class="tag">SSO</span></li>
+  </ul>
+
+  <h3>Typical Interception Workflow</h3>
+  <p>A standard authorized session review runs through an intercepting proxy so requests and their cookies are fully visible and replayable:</p>
+  <div class="grid cols-2">
+    <div class="card"><div class="icon-wrap"><i data-lucide="repeat"></i></div><h4>Repeater-style replay</h4><p>Resend a captured authenticated request with the session cookie stripped, altered, or reused from a different context to see how the server reacts.</p></div>
+    <div class="card"><div class="icon-wrap"><i data-lucide="list-tree"></i></div><h4>Sequencer-style entropy check</h4><p>Collect a batch of issued session IDs and statistically test them for predictable patterns or insufficient randomness.</p></div>
+  </div>
+
+  <div class="tip-row">
+    <div class="tip-box"><div class="tip-label"><i data-lucide="target" style="width:12px;height:12px;"></i>Bug Bounty Tip</div><p>Session fixation and missing regeneration-after-login are two of the most commonly missed findings in bounty programs — they're quick to check and frequently overlooked by dev teams.</p></div>
+    <div class="tip-box"><div class="tip-label"><i data-lucide="message-circle-question" style="width:12px;height:12px;"></i>Interview Question</div><p>"Walk me through what happens, server-side, from the moment a user submits valid credentials to the moment their browser holds a session cookie." Be ready to name every step.</p></div>
+  </div>
+</section>
+
+<section class="doc-section" id="dev-practices">
+  <span class="eyebrow">12 · Practices</span>
+  <h2 style="margin-top:0;">Developer Best Practices</h2>
+  <div class="grid cols-2">
+    <div class="card"><div class="icon-wrap"><i data-lucide="lock"></i></div><h4>HTTPS Everywhere</h4><p>No exceptions — mixed HTTP/HTTPS lets session cookies leak in plaintext on the insecure paths.</p></div>
+    <div class="card"><div class="icon-wrap"><i data-lucide="cookie"></i></div><h4>Secure Cookie Flags</h4><p><code>Secure</code>, <code>HttpOnly</code>, and an appropriate <code>SameSite</code> value on every session cookie, by default.</p></div>
+    <div class="card"><div class="icon-wrap"><i data-lucide="shield"></i></div><h4>CSRF Tokens</h4><p>Pair cookie-based sessions with anti-CSRF tokens on state-changing requests as defense in depth.</p></div>
+    <div class="card"><div class="icon-wrap"><i data-lucide="gauge"></i></div><h4>Rate Limiting</h4><p>Throttle login and session-related endpoints to blunt brute-force and credential-stuffing attempts.</p></div>
+    <div class="card"><div class="icon-wrap"><i data-lucide="refresh-ccw"></i></div><h4>Regenerate on Login</h4><p>Always issue a new session ID at authentication — never reuse a pre-login ID.</p></div>
+    <div class="card"><div class="icon-wrap"><i data-lucide="log-out"></i></div><h4>Real Logout</h4><p>Destroy the session record server-side; don't just delete the cookie client-side.</p></div>
+    <div class="card"><div class="icon-wrap"><i data-lucide="rotate-cw"></i></div><h4>Rotation</h4><p>Rotate long-lived session IDs periodically, especially around sensitive actions.</p></div>
+    <div class="card"><div class="icon-wrap"><i data-lucide="smartphone"></i></div><h4>Device Validation</h4><p>Flag or challenge sessions that suddenly appear from a new device or unusual location.</p></div>
+    <div class="card"><div class="icon-wrap"><i data-lucide="key-round"></i></div><h4>MFA</h4><p>Require a second factor for login and, ideally, before especially sensitive actions.</p></div>
+    <div class="card"><div class="icon-wrap"><i data-lucide="activity"></i></div><h4>Session Monitoring</h4><p>Log session creation/destruction and alert on anomalies like impossible-travel logins.</p></div>
+  </div>
+
+  <h3>Example: Regenerating a session on login (Express + express-session)</h3>
+  <div class="code-block">
+    <div class="code-head"><span class="code-lang">javascript</span><button class="copy-btn" onclick="copyCode(this)"><i data-lucide="copy"></i>Copy</button></div>
+    <pre><code><span class="tok-fn">app</span>.<span class="tok-fn">post</span>(<span class="tok-str">'/login'</span>, <span class="tok-kw">async</span> (req, res) => {
+  <span class="tok-kw">const</span> user = <span class="tok-kw">await</span> <span class="tok-fn">authenticate</span>(req.body);
+  <span class="tok-kw">if</span> (!user) <span class="tok-kw">return</span> res.<span class="tok-fn">status</span>(<span class="tok-num">401</span>).<span class="tok-fn">send</span>(<span class="tok-str">'Invalid credentials'</span>);
+
+  <span class="tok-com">// Prevent session fixation: never reuse the pre-login ID</span>
+  req.session.<span class="tok-fn">regenerate</span>((err) => {
+    <span class="tok-kw">if</span> (err) <span class="tok-kw">return</span> res.<span class="tok-fn">status</span>(<span class="tok-num">500</span>).<span class="tok-fn">send</span>(<span class="tok-str">'Session error'</span>);
+    req.session.userId = user.id;
+    req.session.<span class="tok-fn">save</span>(() => res.<span class="tok-fn">send</span>(<span class="tok-str">'Logged in'</span>));
+  });
+});</code></pre>
+  </div>
+</section>
+
+<section class="doc-section" id="user-practices">
+  <span class="eyebrow">13 · Practices</span>
+  <h2 style="margin-top:0;">User Best Practices</h2>
+  <div class="grid cols-3">
+    <div class="card"><div class="icon-wrap"><i data-lucide="wifi-off"></i></div><h4>Avoid Public Wi-Fi</h4><p>Untrusted networks make traffic interception far easier, especially on non-HTTPS sites.</p></div>
+    <div class="card"><div class="icon-wrap"><i data-lucide="shield-check"></i></div><h4>Enable MFA</h4><p>A second factor blunts the impact of a leaked password even if it doesn't stop session theft.</p></div>
+    <div class="card"><div class="icon-wrap"><i data-lucide="log-out"></i></div><h4>Log Out on Shared Devices</h4><p>An open session on a public computer is a standing invitation.</p></div>
+    <div class="card"><div class="icon-wrap"><i data-lucide="download"></i></div><h4>Keep Browsers Updated</h4><p>Browser patches regularly close cookie-handling and script-isolation bugs.</p></div>
+    <div class="card"><div class="icon-wrap"><i data-lucide="key-round"></i></div><h4>Use a Password Manager</h4><p>Unique, strong passwords per site limit the blast radius of any single breach.</p></div>
+    <div class="card"><div class="icon-wrap"><i data-lucide="mail-warning"></i></div><h4>Watch for Phishing</h4><p>Fake login pages are one of the most common ways real session cookies get stolen.</p></div>
+    <div class="card"><div class="icon-wrap"><i data-lucide="lock"></i></div><h4>Check for HTTPS</h4><p>A padlock icon means the connection — including your session cookie — is encrypted in transit.</p></div>
+    <div class="card"><div class="icon-wrap"><i data-lucide="globe-lock"></i></div><h4>Use a VPN on Untrusted Networks</h4><p>Encrypts your traffic end-to-end when you can't trust the local network.</p></div>
+    <div class="card"><div class="icon-wrap"><i data-lucide="eye"></i></div><h4>Practice Safe Browsing</h4><p>Avoid installing untrusted extensions — malicious ones can read cookies directly.</p></div>
+  </div>
+</section>
+
+<section class="doc-section" id="labs">
+  <span class="eyebrow">14 · Practice &amp; Reference</span>
+  <h2 style="margin-top:0;">Hands-on Labs</h2>
+  <p>Practice against applications built specifically to be broken — never against systems you don't have explicit permission to test.</p>
+
+  <div class="accordion" id="labs-accordion">
+    <div class="accordion-item">
+      <div class="accordion-head"><span>DVWA — Damn Vulnerable Web Application</span><i data-lucide="chevron-down"></i></div>
+      <div class="accordion-body"><div class="accordion-body-inner">
+        A deliberately insecure PHP/MySQL app with adjustable difficulty levels. Walkthrough focus: compare session cookie behavior at "low" vs "high" security settings, and observe how a missing <code>HttpOnly</code> flag changes what a reflected script can read.
+      </div></div>
+    </div>
+    <div class="accordion-item">
+      <div class="accordion-head"><span>OWASP Juice Shop</span><i data-lucide="chevron-down"></i></div>
+      <div class="accordion-body"><div class="accordion-body-inner">
+        A modern JavaScript training app covering the full OWASP Top 10. Walkthrough focus: its scoreboard challenge category has several session and JWT-handling exercises well suited to practicing safe, authorized token analysis.
+      </div></div>
+    </div>
+    <div class="accordion-item">
+      <div class="accordion-head"><span>PortSwigger Web Security Academy</span><i data-lucide="chevron-down"></i></div>
+      <div class="accordion-body"><div class="accordion-body-inner">
+        Free, browser-based labs with disposable target instances for each vulnerability class, including a dedicated "Authentication" and "Session" topic track with guided theory pages.
+      </div></div>
+    </div>
+  </div>
+</section>
+
+<section class="doc-section" id="tools">
+  <span class="eyebrow">14 · Practice &amp; Reference</span>
+  <h2 style="margin-top:0;">Tools</h2>
+  <div class="tool-card"><div class="icon-wrap"><i data-lucide="wand-2"></i></div><div><h4>Burp Suite</h4><p>Intercepting proxy for viewing, modifying, and replaying HTTP requests — the standard tool for manual session testing.</p></div></div>
+  <div class="tool-card"><div class="icon-wrap"><i data-lucide="crosshair"></i></div><div><h4>OWASP ZAP</h4><p>Free, open-source alternative to Burp with automated scanning and a similar intercepting proxy workflow.</p></div></div>
+  <div class="tool-card"><div class="icon-wrap"><i data-lucide="cable"></i></div><div><h4>mitmproxy</h4><p>Scriptable command-line proxy, useful for automating repetitive session-manipulation tests.</p></div></div>
+  <div class="tool-card"><div class="icon-wrap"><i data-lucide="waves"></i></div><div><h4>Wireshark</h4><p>Packet-level network analysis — confirms whether traffic (and cookies within it) is actually encrypted on the wire.</p></div></div>
+  <div class="tool-card"><div class="icon-wrap"><i data-lucide="chrome"></i></div><div><h4>Chrome / Firefox DevTools</h4><p>Application/Storage tabs show live cookies, their flags, and expiry — the fastest first check on any target.</p></div></div>
+  <div class="tool-card"><div class="icon-wrap"><i data-lucide="send"></i></div><div><h4>Postman &amp; cURL</h4><p>Manual request crafting for reproducing session behavior outside the browser, with full control over headers.</p></div></div>
+</section>
+
+<section class="doc-section" id="case-studies">
+  <span class="eyebrow">15 · Practice &amp; Reference</span>
+  <h2 style="margin-top:0;">Real-World Case Studies</h2>
+  <p>Publicly disclosed bug bounty write-ups repeatedly surface the same handful of root causes. Patterns worth internalizing:</p>
+  <div class="timeline">
+    <div class="tl-item"><h4>Session ID in the URL</h4><p>Legacy applications that pass session identifiers as URL query parameters leak them through browser history, proxy logs, and the Referer header whenever a user clicks an outbound link.</p></div>
+    <div class="tl-item"><h4>Missing regeneration after login</h4><p>A recurring bounty finding: pre-authentication session IDs remain valid after login, enabling classic session fixation if an attacker can plant a known ID first.</p></div>
+    <div class="tl-item"><h4>Logout that doesn't log out</h4><p>Reports frequently show "logout" clearing only the client-side cookie while the server-side session record stays valid — a stolen cookie keeps working after the victim thinks they're safe.</p></div>
+    <div class="tl-item"><h4>Weak JWT validation</h4><p>Several public disclosures involve servers accepting an <code>alg:none</code> JWT or failing to verify the signature at all, letting an attacker forge arbitrary claims.</p></div>
+  </div>
+  <div class="callout info">
+    <i data-lucide="info"></i>
+    <div><strong>Lesson</strong><p>Session vulnerabilities are rarely exotic. The recurring theme across public reports is a missing lifecycle step — no regeneration, no server-side destruction, no signature check — not novel cryptographic breaks.</p></div>
+  </div>
+</section>
+
+<section class="doc-section" id="owasp">
+  <span class="eyebrow">16 · Practice &amp; Reference</span>
+  <h2 style="margin-top:0;">OWASP References</h2>
+  <div class="grid cols-2">
+    <div class="card"><div class="icon-wrap"><i data-lucide="book-marked"></i></div><h4>OWASP Top 10</h4><p>The industry-standard list of the most critical web application risk categories, several of which map directly to session handling.</p></div>
+    <div class="card"><div class="icon-wrap"><i data-lucide="file-text"></i></div><h4>Session Management Cheat Sheet</h4><p>OWASP's dedicated, detailed guidance on session ID generation, storage, expiration, and cookie configuration.</p></div>
+    <div class="card"><div class="icon-wrap"><i data-lucide="clipboard-check"></i></div><h4>ASVS</h4><p>The Application Security Verification Standard defines testable, tiered requirements for authentication and session management.</p></div>
+    <div class="card"><div class="icon-wrap"><i data-lucide="graduation-cap"></i></div><h4>PortSwigger Web Security Academy</h4><p>Free theory-plus-labs coverage of authentication and session-related vulnerability classes.</p></div>
+  </div>
+</section>
+
+<section class="doc-section" id="quiz">
+  <span class="eyebrow">17 · Practice &amp; Reference</span>
+  <h2 style="margin-top:0;">Quick Quiz</h2>
+  <p>Four questions to sanity-check what stuck.</p>
+  <div id="quiz-container"></div>
+</section>
+
+<section class="doc-section" id="summary">
+  <span class="eyebrow">Summary</span>
+  <h2 style="margin-top:0;">Recap</h2>
+  <p>HTTP forgets you after every request. Sessions are the mechanism that lets a stateless protocol feel continuous — and every attack in this guide is, at root, an attempt to either steal, guess, plant, or outlive that mechanism's session identifier.</p>
+
+  <div class="recap-grid">
+    <div class="card"><div class="recap-num">10</div><div class="recap-label">Attack classes covered</div></div>
+    <div class="card"><div class="recap-num">14</div><div class="recap-label">Item testing checklist</div></div>
+    <div class="card"><div class="recap-num">6</div><div class="recap-label">Cookie attributes to configure</div></div>
+  </div>
+
+  <div class="callout success">
+    <i data-lucide="check-circle-2"></i>
+    <div><strong>The one rule that covers most of it</strong><p>High-entropy IDs, regenerated on privilege change, transported only over HTTPS with HttpOnly/Secure/SameSite set, and destroyed server-side on logout or timeout. Most real-world session bugs are a violation of exactly one clause in that sentence.</p></div>
+  </div>
+
+  <footer>
+    <div class="footer-follow">
+      <div class="footer-follow-icon"><i data-lucide="instagram"></i></div>
+      <div>
+        <strong>@niksbytez</strong>
+        <p>More session-hacking breakdowns, one reel at a time.</p>
+      </div>
+      <a class="follow-btn" href="https://www.instagram.com/niksbytez/" target="_blank" rel="noopener">Follow <i data-lucide="arrow-up-right" style="width:13px;height:13px;"></i></a>
+    </div>
+    <p style="margin-top:22px;">Built for educational purposes · Content reflects general, publicly documented web security practice · Always test only systems you're authorized to test.</p>
+  </footer>
+</section>
+
+</main>
+
+<!-- TOC -->
+<nav id="toc">
+  <div class="toc-title">On this page</div>
+  <div id="toc-links"></div>
+</nav>
+</div>
+
+<script>
+lucide.createIcons();
+
+/* ---------------- progress bar + reading time ---------------- */
+const mainEl = document.getElementById('main-content');
+function updateProgress(){
+  const scrollTop = window.scrollY;
+  const docHeight = document.documentElement.scrollHeight - window.innerHeight;
+  const pct = docHeight > 0 ? (scrollTop/docHeight)*100 : 0;
+  document.getElementById('progress-bar').style.width = pct+'%';
+}
+window.addEventListener('scroll', updateProgress);
+updateProgress();
+
+const wordCount = mainEl.innerText.trim().split(/\s+/).length;
+const minutes = Math.max(1, Math.round(wordCount/200));
+document.getElementById('reading-time').innerHTML = '<i data-lucide="clock" style="width:12px;height:12px;vertical-align:-2px;"></i> '+minutes+' min read';
+lucide.createIcons();
+
+/* ---------------- mobile sidebar ---------------- */
+const sidebar = document.getElementById('sidebar');
+const scrim = document.getElementById('scrim');
+document.getElementById('menu-toggle').addEventListener('click', ()=>{
+  sidebar.classList.toggle('open'); scrim.classList.toggle('show');
+});
+scrim.addEventListener('click', ()=>{ sidebar.classList.remove('open'); scrim.classList.remove('show'); });
+sidebar.querySelectorAll('a').forEach(a=>a.addEventListener('click', ()=>{
+  sidebar.classList.remove('open'); scrim.classList.remove('show');
+}));
+
+/* ---------------- scrollspy ---------------- */
+const sections = [...document.querySelectorAll('section.doc-section')];
+const navLinks = [...document.querySelectorAll('#sidebar a')];
+const spy = new IntersectionObserver((entries)=>{
+  entries.forEach(e=>{
+    const link = navLinks.find(a=>a.getAttribute('href')==='#'+e.target.id);
+    if(!link) return;
+    if(e.isIntersecting){
+      navLinks.forEach(a=>a.classList.remove('active'));
+      link.classList.add('active');
+    }
+  });
+},{rootMargin:'-20% 0px -70% 0px'});
+sections.forEach(s=>spy.observe(s));
+
+/* ---------------- TOC generation (h2s) ---------------- */
+const tocLinks = document.getElementById('toc-links');
+document.querySelectorAll('main h2[id]').forEach(h=>{
+  const a = document.createElement('a');
+  a.href = '#'+h.id; a.textContent = h.textContent;
+  tocLinks.appendChild(a);
+});
+const tocAnchors = [...tocLinks.querySelectorAll('a')];
+const spy2 = new IntersectionObserver((entries)=>{
+  entries.forEach(e=>{
+    const a = tocAnchors.find(a=>a.getAttribute('href')==='#'+e.target.id);
+    if(!a) return;
+    if(e.isIntersecting){ tocAnchors.forEach(x=>x.classList.remove('active')); a.classList.add('active'); }
+  });
+},{rootMargin:'-10% 0px -80% 0px'});
+document.querySelectorAll('main h2[id]').forEach(h=>spy2.observe(h));
+
+/* ---------------- search ---------------- */
+const searchInput = document.getElementById('search-input');
+document.addEventListener('keydown', (e)=>{
+  if(e.key==='/' && document.activeElement!==searchInput){ e.preventDefault(); searchInput.focus(); }
+});
+searchInput.addEventListener('input', ()=>{
+  const q = searchInput.value.trim().toLowerCase();
+  if(!q){ sections.forEach(s=>s.style.display=''); return; }
+  sections.forEach(s=>{
+    s.style.display = s.innerText.toLowerCase().includes(q) ? '' : 'none';
+  });
+});
+
+/* ---------------- copy buttons ---------------- */
+function copyCode(btn){
+  const code = btn.closest('.code-block').querySelector('pre').innerText;
+  navigator.clipboard.writeText(code).then(()=>{
+    const old = btn.innerHTML;
+    btn.innerHTML = '<i data-lucide="check"></i>Copied';
+    lucide.createIcons();
+    setTimeout(()=>{ btn.innerHTML = old; lucide.createIcons(); }, 1600);
+  });
+}
+
+/* ---------------- generic accordion ---------------- */
+document.querySelectorAll('.accordion-head').forEach(head=>{
+  head.addEventListener('click', ()=>{
+    const item = head.closest('.accordion-item');
+    const body = item.querySelector('.accordion-body');
+    const isOpen = item.classList.contains('open');
+    item.classList.toggle('open');
+    body.style.maxHeight = isOpen ? '0px' : body.scrollHeight+'px';
+  });
+});
+
+/* ---------------- checklist progress ---------------- */
+const checklist = document.getElementById('checklist');
+const checklistProgress = document.getElementById('checklist-progress');
+function updateChecklist(){
+  const boxes = checklist.querySelectorAll('input[type=checkbox]');
+  const checked = [...boxes].filter(b=>b.checked).length;
+  checklistProgress.textContent = checked+' / '+boxes.length+' checked';
+}
+checklist.addEventListener('change', updateChecklist);
+updateChecklist();
+
+/* ---------------- attack cards data ---------------- */
+const attacks = [
+  {
+    name:'Session Hijacking', sev:'critical', icon:'user-x',
+    def:'An attacker obtains a valid session identifier belonging to another user and uses it to impersonate them without needing their password.',
+    how:'The ID is captured via network sniffing on unencrypted connections, malware, a leaked log file, or an XSS payload that reads a non-HttpOnly cookie, then replayed by the attacker\'s own browser or client.',
+    example:'A user logs into a site over public Wi-Fi without HTTPS; an attacker on the same network captures the plaintext session cookie and reuses it to access the account.',
+    impact:'Full account takeover for the lifetime of the stolen session — read, write, and act as the victim.',
+    detection:'Sudden changes in IP/device fingerprint mid-session, impossible-travel patterns, or two simultaneous active sessions from different geographies.',
+    prevention:'Enforce HTTPS everywhere, set HttpOnly/Secure on cookies, bind sessions loosely to device signals, and rotate IDs periodically.',
+    owasp:'OWASP Session Management Cheat Sheet — Session ID Protection'
+  },
+  {
+    name:'Session Fixation', sev:'high', icon:'pin',
+    def:'An attacker sets or plants a known session ID on a victim before they authenticate, then uses that same ID after the victim logs in.',
+    how:'The attacker sends the victim a link containing a pre-chosen session ID (where the app accepts IDs from the URL) or plants a cookie via a subdomain, then waits for the victim to log in under that ID.',
+    example:'A vulnerable app accepts `?sessionid=ATTACKERKNOWN123` in the URL; the attacker emails that link, the victim logs in, and the attacker\'s copy of the same ID is now authenticated.',
+    impact:'Account takeover without ever needing to intercept traffic — the attacker already holds a valid post-login ID.',
+    detection:'Sessions that were valid pre-authentication and remain unchanged post-authentication in server logs.',
+    prevention:'Always issue a brand-new session ID on login (regeneration), and never accept session IDs supplied via URL parameters.',
+    owasp:'OWASP Session Management Cheat Sheet — Session Fixation'
+  },
+  {
+    name:'Session Replay', sev:'high', icon:'repeat',
+    def:'A previously captured, legitimate request (including its session token) is resent later to repeat an action or regain access.',
+    how:'An attacker records a valid authenticated request — often via a network capture or malicious proxy — and resends it verbatim at a later time.',
+    example:'A captured "transfer funds" request, complete with valid session cookie, is resent by an attacker hours later and the server processes it again as if freshly issued.',
+    impact:'Unauthorized repeated actions or continued access using a token the legitimate user believed was no longer active.',
+    detection:'Identical requests with reused tokens or nonces arriving outside their expected single-use window.',
+    prevention:'Use short-lived tokens, one-time nonces on sensitive actions, and server-side timestamp/replay checks.',
+    owasp:'OWASP ASVS — Session Management Verification Requirements'
+  },
+  {
+    name:'Session Prediction', sev:'critical', icon:'binary',
+    def:'An attacker deduces a valid session ID structure by analyzing patterns in how IDs are generated, rather than stealing one directly.',
+    how:'If IDs are sequential, timestamp-based, or generated with a weak/predictable algorithm, an attacker can compute plausible values without ever seeing a real one.',
+    example:'A legacy app assigns session IDs as an incrementing integer; an attacker simply tries nearby numbers to land on another user\'s active session.',
+    impact:'Mass account compromise potential — predictable IDs can be enumerated at scale.',
+    detection:'Statistical analysis of collected session IDs showing low entropy or an obvious sequence.',
+    prevention:'Generate IDs with a cryptographically secure random number generator and sufficient length (128+ bits of entropy).',
+    owasp:'OWASP Session Management Cheat Sheet — Session ID Entropy'
+  },
+  {
+    name:'Session Poisoning', sev:'high', icon:'flask-conical',
+    def:'An attacker injects or manipulates data stored within a session (server-side or client-side) to alter the application\'s behavior.',
+    how:'Exploiting insufficient input validation on values written into session state, so tampered data (e.g. a role flag) is trusted on later requests.',
+    example:'A client-influenced value like a "role" field gets copied into session state without server-side revalidation, letting a user escalate their own privileges.',
+    impact:'Privilege escalation, business logic bypass, or corrupted session state affecting subsequent requests.',
+    detection:'Session data audits revealing values that don\'t match what the server should have independently derived.',
+    prevention:'Never trust client-supplied values for security-relevant session fields; always re-derive them server-side.',
+    owasp:'OWASP ASVS — Access Control Verification Requirements'
+  },
+  {
+    name:'Cross-Site Scripting (XSS)', sev:'critical', icon:'code',
+    def:'Injecting attacker-controlled script into a page viewed by other users, which can then read cookies, tokens, or perform actions as the victim.',
+    how:'Unsanitized user input is reflected or stored into HTML/JS context, executing in the victim\'s browser with the same access as the legitimate page.',
+    example:'A comment field that renders raw HTML lets an attacker post a script tag that exfiltrates `document.cookie` to an attacker-controlled server for any visitor who views the comment.',
+    impact:'Session theft (if cookies aren\'t HttpOnly), credential harvesting, defacement, or full account takeover.',
+    detection:'Automated and manual testing with payloads that trigger observable side effects (alerts, callbacks) in a controlled environment.',
+    prevention:'Context-aware output encoding, a strict Content-Security-Policy, and HttpOnly cookies as a safety net.',
+    owasp:'OWASP Top 10 — A03: Injection'
+  },
+  {
+    name:'Cross-Site Request Forgery (CSRF)', sev:'high', icon:'shuffle',
+    def:'Tricks a victim\'s authenticated browser into unknowingly submitting a state-changing request to a site they\'re logged into.',
+    how:'A malicious page auto-submits a form or fires a request to the target site; the browser attaches the victim\'s valid session cookie automatically, and the server can\'t tell it wasn\'t intentional.',
+    example:'A victim, logged into their bank, visits a malicious page containing a hidden auto-submitting form pointed at the bank\'s "change email" endpoint.',
+    impact:'Unauthorized state changes performed with the victim\'s full privileges — password/email change, fund transfer, data deletion.',
+    detection:'Endpoints that perform state changes without verifying an anti-CSRF token or checking request origin.',
+    prevention:'Anti-CSRF tokens on state-changing forms, and SameSite=Lax/Strict on session cookies.',
+    owasp:'OWASP Top 10 — A01: Broken Access Control'
+  },
+  {
+    name:'Man-in-the-Middle (MITM)', sev:'critical', icon:'wifi',
+    def:'An attacker positions themselves between the victim and the server to intercept, read, or alter traffic — including session cookies — in transit.',
+    how:'Achieved via rogue Wi-Fi access points, ARP spoofing on a local network, or DNS manipulation, especially where traffic isn\'t fully encrypted.',
+    example:'A rogue "Free Airport WiFi" access point silently intercepts all HTTP traffic passing through it, capturing any session cookies sent without TLS.',
+    impact:'Full visibility into unencrypted traffic, including credentials and session identifiers, plus the ability to modify responses.',
+    detection:'Certificate warnings, unexpected certificate authorities, or network anomaly monitoring at the infrastructure level.',
+    prevention:'Enforce HTTPS with HSTS, certificate pinning where applicable, and avoid untrusted networks for sensitive activity.',
+    owasp:'OWASP Top 10 — A02: Cryptographic Failures'
+  },
+  {
+    name:'Cookie Theft', sev:'high', icon:'cookie',
+    def:'The general category of an attacker obtaining a victim\'s cookie file or specific cookie values through any means, then reusing them.',
+    how:'Via XSS, unsecured local storage/backups, malicious browser extensions, physical device access, or insecure sync/export features.',
+    example:'A malicious browser extension with broad permissions silently reads and exfiltrates all cookies for logged-in sites.',
+    impact:'Equivalent to session hijacking — the attacker inherits whatever access the stolen cookie grants.',
+    detection:'Anomalous session activity correlated with known malware/extension incidents on the victim\'s device.',
+    prevention:'HttpOnly cookies, minimal extension permissions, endpoint security, and short cookie lifetimes.',
+    owasp:'OWASP Session Management Cheat Sheet — Cookie Attributes'
+  },
+  {
+    name:'Browser Malware', sev:'critical', icon:'skull',
+    def:'Malicious software running on the victim\'s device that can read memory, intercept traffic, or directly access browser storage, bypassing most server-side session defenses entirely.',
+    how:'Info-stealer malware, malicious browser extensions, or compromised system processes read session tokens directly from the browser\'s storage or memory.',
+    example:'An info-stealer trojan harvests browser cookie databases wholesale and exfiltrates them to an attacker, who imports the sessions into their own browser.',
+    impact:'Complete bypass of network-layer and even HttpOnly protections, since the malware runs with local device privileges.',
+    detection:'Endpoint detection and response (EDR) tooling, unusual outbound connections, and unexpected session reuse across geographies.',
+    prevention:'Endpoint security hygiene, short session lifetimes, device-bound session validation, and rapid session revocation on anomaly detection.',
+    owasp:'OWASP Top 10 — A09: Security Logging and Monitoring Failures'
+  }
+];
+
+const attackList = document.getElementById('attack-list');
+attacks.forEach((a,i)=>{
+  const card = document.createElement('div');
+  card.className='attack-card';
+  card.innerHTML = `
+    <div class="attack-head" data-idx="${i}">
+      <div class="attack-head-left">
+        <div class="attack-icon"><i data-lucide="${a.icon}"></i></div>
+        <div class="attack-title"><h4>${a.name}</h4><span class="sev ${a.sev}">${a.sev}</span></div>
+      </div>
+      <i data-lucide="chevron-down" class="chevron-toggle"></i>
+    </div>
+    <div class="attack-body">
+      <div class="attack-body-inner">
+        <h5>Definition</h5><p>${a.def}</p>
+        <h5>How It Works</h5><p>${a.how}</p>
+        <h5>Real-World Example</h5><p>${a.example}</p>
+        <h5>Impact</h5><p>${a.impact}</p>
+        <h5>Detection</h5><p>${a.detection}</p>
+        <h5>Prevention</h5><p>${a.prevention}</p>
+        <h5>OWASP Reference</h5><p>${a.owasp}</p>
+      </div>
+    </div>`;
+  attackList.appendChild(card);
+});
+lucide.createIcons();
+
+attackList.addEventListener('click', (e)=>{
+  const head = e.target.closest('.attack-head');
+  if(!head) return;
+  const card = head.closest('.attack-card');
+  const body = card.querySelector('.attack-body');
+  const isOpen = card.classList.contains('open');
+  card.classList.toggle('open');
+  body.style.maxHeight = isOpen ? '0px' : body.scrollHeight+'px';
+});
+
+/* ---------------- quiz ---------------- */
+const quizData = [
+  {q:'Why does HTTP need sessions at all?', opts:['Because HTTP is stateless and forgets every request','Because cookies are illegal without them','Because browsers require them to render CSS'], correct:0},
+  {q:'What is the primary purpose of the HttpOnly flag?', opts:['Forces the cookie over HTTPS only','Prevents JavaScript from reading the cookie','Makes the cookie last forever'], correct:1},
+  {q:'What prevents session fixation most directly?', opts:['Using a longer password','Regenerating the session ID at login','Adding more cookies'], correct:1},
+  {q:'Which attack tricks an authenticated browser into submitting an unwanted request?', opts:['CSRF','Session Prediction','DNS Poisoning'], correct:0}
+];
+const quizContainer = document.getElementById('quiz-container');
+quizData.forEach((item,qi)=>{
+  const card = document.createElement('div');
+  card.className='quiz-card';
+  card.innerHTML = `<div class="quiz-q">${qi+1}. ${item.q}</div>
+    <div class="quiz-opts">${item.opts.map((o,oi)=>`<button class="quiz-opt" data-qi="${qi}" data-oi="${oi}">${o}</button>`).join('')}</div>
+    <div class="quiz-feedback"></div>`;
+  quizContainer.appendChild(card);
+});
+quizContainer.addEventListener('click', (e)=>{
+  const btn = e.target.closest('.quiz-opt');
+  if(!btn) return;
+  const card = btn.closest('.quiz-card');
+  const qi = +btn.dataset.qi, oi = +btn.dataset.oi;
+  const opts = [...card.querySelectorAll('.quiz-opt')];
+  if(card.dataset.answered) return;
+  card.dataset.answered = '1';
+  opts.forEach((o,i)=>{
+    if(i===quizData[qi].correct) o.classList.add('correct');
+    else if(i===oi) o.classList.add('wrong');
+  });
+  const fb = card.querySelector('.quiz-feedback');
+  fb.style.display='block';
+  fb.textContent = oi===quizData[qi].correct ? 'Correct.' : 'Not quite — correct answer highlighted above.';
+});
+</script>
+</body>
+</html>
